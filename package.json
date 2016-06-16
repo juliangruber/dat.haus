@@ -1,0 +1,31 @@
+{
+  "name": "dat.haus",
+  "version": "0.0.0",
+  "description": "dat.haus",
+  "main": "index.js",
+  "bin": {
+    "dat.haus": "./index.js"
+  },
+  "dependencies": {
+    "JSONStream": "^1.1.2",
+    "datland-swarm-defaults": "^1.0.0",
+    "discovery-swarm": "^4.0.0",
+    "hyperdrive": "^6.3.0",
+    "level": "^1.4.0",
+    "lru": "^3.0.0",
+    "memdb": "^1.3.1",
+    "mime": "^1.3.4",
+    "minimist": "^1.2.0",
+    "pump": "^1.0.1"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/juliangruber/dat.haus.git"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.comm/juliangruber/dat.haus/issues"
+  },
+  "homepage": "https://github.com/juliangruber/dat.haus"
+}
