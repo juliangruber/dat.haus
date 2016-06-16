@@ -8,7 +8,8 @@
 ## Roadmap
 
 - [ ] `curl https://dat.haus/ARCHIVE/FILE > file.txt`
-- [ ] `curl https://dat.haus/ARCHIVE > file.tar.gz`
+- [ ] `curl https://dat.haus/ARCHIVE.tar > file.tar.gz`
+- [ ] `curl https://dat.haus/ARCHIVE > info.txt`
 - [ ] `cat file | curl -XPOST https://dat.haus/`
 - [ ] `tar -cz - . | curl -XPOST https://dat.haus/`
 - [ ] `curl -XHEAD https://dat.haus/ARCHIVE/FILE > stat.txt`
