@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 var http = require('http')
+var crypto = require('crypto')
 var pump = require('pump')
 var level = require('level')
 var lru = require('lru')
@@ -51,7 +52,7 @@ var server = http.createServer(function (req, res) {
 
   if (!dat) return onerror(404, res)
 
-  var archive = cache.get(dat.key)
+  var archive = cache.get(dat.discoveryKey)
   if (!archive) {
     archive = drive.createArchive(dat.key)
     cache.set(archive.discoveryKey.toString('hex'), archive)
@@ -89,6 +90,7 @@ function parse (url) {
 
   return {
     key: key,
+    discoveryKey: crypto.createHmac('sha256', Buffer(key, 'hex')).update('hypercore').digest('hex'),
     filename: filename
   }
 }
