@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+'use strict'
+
 var http = require('http')
 var crypto = require('crypto')
 var pump = require('pump')
@@ -11,6 +13,8 @@ var swarm = require('discovery-swarm')
 var defaults = require('datland-swarm-defaults')
 var mime = require('mime')
 var minimist = require('minimist')
+var TimeoutStream = require('through-timeout')
+var cbTimeout = require('callback-timeout')
 
 var argv = minimist(process.argv.slice(2), {
   alias: {port: 'p', cacheSize: 'cache-size'},
@@ -60,17 +64,26 @@ var server = http.createServer(function (req, res) {
   }
 
   if (!dat.filename) {
-    pump(archive.list({live: false}), JSONStream.stringify('[', ', ', ']\n', 2), res)
-    return
+    var src = archive.list({live: false})
+    var timeout = Timeout({
+      objectMode: true,
+      duration: 10000
+    }, () => {
+      onerror(404, res)
+      src.destroy()
+    })
+    var stringify = JSONStream.stringify('[', ',', ']\n', 2)
+    pump(src, timeout, stringify, res)
   }
 
-  archive.get(dat.filename, function (err, entry) {
+  archive.get(dat.filename, cbTimeout((err, entry) => {
+    if (err && err.code === 'ETIMEOUT') return onerror(404, res)
     if (err || !entry || entry.type !== 'file') return onerror(404, res)
 
     res.setHeader('Content-Type', mime.lookup(dat.filename))
     res.setHeader('Content-Length', entry.length)
     pump(archive.createFileReadStream(entry), res)
-  })
+  }, 10000))
 })
 
 server.listen(argv.port, function () {
