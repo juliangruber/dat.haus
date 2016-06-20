@@ -11,6 +11,9 @@ var swarm = require('discovery-swarm')
 var defaults = require('datland-swarm-defaults')
 var mime = require('mime')
 var minimist = require('minimist')
+var encoding = require('dat-encoding')
+var ndjson = require('ndjson')
+var onFinished = require('on-finished')
 
 var argv = minimist(process.argv.slice(2), {
   alias: {port: 'p', cacheSize: 'cache-size'},
@@ -59,18 +62,28 @@ var server = http.createServer(function (req, res) {
     sw.join(archive.discoveryKey)
   }
 
-  if (!dat.filename) {
-    pump(archive.list({live: false}), JSONStream.stringify('[', ', ', ']\n', 2), res)
-    return
+  if (dat.op === 'get') {
+    if (!dat.filename) {
+      pump(archive.list({live: false}), JSONStream.stringify('[', ', ', ']\n', 2), res)
+      return
+    }
+
+    archive.get(dat.filename, function (err, entry) {
+      if (err || !entry || entry.type !== 'file') return onerror(404, res)
+
+      res.setHeader('Content-Type', mime.lookup(dat.filename))
+      res.setHeader('Content-Length', entry.length)
+      pump(archive.createFileReadStream(entry), res)
+    })
+  } else if (dat.op === 'changes') {
+    res.setHeader('Content-Type', 'application/x-ndjson')
+    var pipe = pump(
+      archive.list({ live: true }),
+      ndjson.serialize(),
+      res
+    )
+    onFinished(res, () => pipe.destroy())
   }
-
-  archive.get(dat.filename, function (err, entry) {
-    if (err || !entry || entry.type !== 'file') return onerror(404, res)
-
-    res.setHeader('Content-Type', mime.lookup(dat.filename))
-    res.setHeader('Content-Length', entry.length)
-    pump(archive.createFileReadStream(entry), res)
-  })
 })
 
 server.listen(argv.port, function () {
@@ -83,14 +96,28 @@ function onerror (status, res) {
 }
 
 function parse (url) {
-  var key = url.slice(1, 65)
-  if (!/^[0-9a-f]{64}$/.test(key)) return null
+  var key;
+  var op;
+  var filename;
+  var m;
 
-  var filename = url.slice(66)
+  if (m = /^\/([a-z0-9]+)\.changes$/.exec(url)) {
+    try { key = encoding.decode(m[1]) }
+    catch (_) { return null }
+    op = 'changes'
+  }
+  else if (m = /^\/([a-z0-9]+)(?:\/(.+))?$/.exec(url)) {
+    try { key = encoding.decode(m[1]) }
+    catch (_) { return null }
+    op = 'get'
+    filename = m[2]
+  }
+  else return null
 
   return {
     key: key,
     discoveryKey: crypto.createHmac('sha256', Buffer(key, 'hex')).update('hypercore').digest('hex'),
-    filename: filename
+    filename: filename,
+    op: op
   }
 }
