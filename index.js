@@ -13,7 +13,6 @@ var mime = require('mime')
 var minimist = require('minimist')
 var encoding = require('dat-encoding')
 var ndjson = require('ndjson')
-var onFinished = require('on-finished')
 
 var argv = minimist(process.argv.slice(2), {
   alias: {port: 'p', cacheSize: 'cache-size'},
@@ -77,12 +76,7 @@ var server = http.createServer(function (req, res) {
     })
   } else if (dat.op === 'changes') {
     res.setHeader('Content-Type', 'application/x-ndjson')
-    var pipe = pump(
-      archive.list({ live: true }),
-      ndjson.serialize(),
-      res
-    )
-    onFinished(res, () => pipe.destroy())
+    pump(archive.list({ live: true }), ndjson.serialize(), res)
   }
 })
 
