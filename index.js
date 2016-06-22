@@ -16,6 +16,7 @@ var rangeParser = require('range-parser')
 var minimist = require('minimist')
 var TimeoutStream = require('through-timeout')
 var cbTimeout = require('callback-timeout')
+var ram = require('random-access-memory')
 
 var argv = minimist(process.argv.slice(2), {
   alias: {port: 'p', cacheSize: 'cache-size'},
@@ -46,6 +47,7 @@ sw.once('error', function () {
 })
 
 var cache = lru(argv.cacheSize || 100)
+var file = argv.persist === false ? ram : undefined
 
 cache.on('evict', function (item) {
   sw.leave(Buffer(item.key, 'hex'))
@@ -59,7 +61,7 @@ var server = http.createServer(function (req, res) {
 
   var archive = cache.get(dat.discoveryKey)
   if (!archive) {
-    archive = drive.createArchive(dat.key)
+    archive = drive.createArchive(dat.key, {file: file})
     cache.set(archive.discoveryKey.toString('hex'), archive)
     sw.join(archive.discoveryKey)
   }
