@@ -12,6 +12,7 @@ var hyperdrive = require('hyperdrive')
 var swarm = require('discovery-swarm')
 var defaults = require('datland-swarm-defaults')
 var mime = require('mime')
+var rangeParser = require('range-parser')
 var minimist = require('minimist')
 var TimeoutStream = require('through-timeout')
 var cbTimeout = require('callback-timeout')
@@ -67,7 +68,7 @@ var server = http.createServer(function (req, res) {
 
   if (!dat.filename) {
     var src = archive.list({live: false})
-    var timeout = Timeout({
+    var timeout = TimeoutStream({
       objectMode: true,
       duration: 10000
     }, () => {
@@ -82,9 +83,22 @@ var server = http.createServer(function (req, res) {
     if (err && err.code === 'ETIMEOUT') return onerror(404, res)
     if (err || !entry || entry.type !== 'file') return onerror(404, res)
 
+    var range = req.headers.range && rangeParser(entry.length, req.headers.range)[0]
+
+    res.setHeader('Access-Ranges', 'bytes')
     res.setHeader('Content-Type', mime.lookup(dat.filename))
-    res.setHeader('Content-Length', entry.length)
-    pump(archive.createFileReadStream(entry), res)
+
+    if (!range || range < 0) {
+      res.setHeader('Content-Length', entry.length)
+      if (req.method === 'HEAD') return res.end()
+      pump(archive.createFileReadStream(entry), res)
+    } else {
+      res.statusCode = 206
+      res.setHeader('Content-Length', range.end - range.start + 1)
+      res.setHeader('Content-Range', 'bytes ' + range.start + '-' + range.end + '/' + entry.length)
+      if (req.method === 'HEAD') return res.end()
+      pump(archive.createFileReadStream(entry, {start: range.start, end: range.end + 1}), res)
+    }
   }, 10000))
 })
 
