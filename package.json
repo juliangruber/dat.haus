@@ -12,6 +12,7 @@
     "datland-swarm-defaults": "^1.0.0",
     "discovery-swarm": "^4.0.0",
     "hyperdrive": "^6.3.0",
+    "hyperdrive-http": "^1.0.0",
     "level": "^1.4.0",
     "lru": "^3.0.0",
     "mime": "^1.3.4",
