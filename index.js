@@ -2,6 +2,7 @@
 
 'use strict'
 
+var http = require('http')
 var level = require('level')
 var lru = require('lru')
 var hyperdrive = require('hyperdrive')
@@ -47,7 +48,14 @@ cache.on('evict', function (item) {
   item.value.close()
 })
 
-hyperdriveHttp(getArchive, argv)
+var server = http.createServer()
+
+var onrequest = hyperdriveHttp(getArchive)
+server.on('request', onrequest)
+
+server.listen(argv.port, function () {
+  console.log('Server is listening on port ' + argv.port)
+})
 
 function getArchive(dat, cb) {
   var archive = cache.get(dat.discoveryKey)
