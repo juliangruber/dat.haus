@@ -1,6 +1,6 @@
 {
   "name": "dat.haus",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "dat.haus",
   "main": "index.js",
   "bin": {
